@@ -1,5 +1,7 @@
-import fetchData from '@/lib/fetchData';
-import { LoginResponse, UserResponse } from '@sharedTypes/MessageTypes';
+import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
+import fetchData from "@/lib/fetchData";
+import { LoginResponse, UserResponse } from "@sharedTypes/MessageTypes";
+import { UserWithNoPassword } from "@sharedTypes/DBTypes";
 // TODO: add imports for WebAuthn functions
 
 const useUser = () => {
@@ -7,35 +9,51 @@ const useUser = () => {
   const getUserByToken = async (token: string) => {
     const options = {
       headers: {
-        Authorization: 'Bearer ' + token,
+        Authorization: "Bearer " + token,
       },
     };
     return await fetchData<UserResponse>(
-      import.meta.env.VITE_AUTH_API + '/users/token/',
-      options,
+      import.meta.env.VITE_AUTH_API + "/users/token/",
+      options
     );
   };
 
   const getUsernameAvailable = async (username: string) => {
     return await fetchData<{ available: boolean }>(
-      import.meta.env.VITE_AUTH_API + '/users/username/' + username,
+      import.meta.env.VITE_AUTH_API + "/users/username/" + username
     );
   };
 
   const getEmailAvailable = async (email: string) => {
     return await fetchData<{ available: boolean }>(
-      import.meta.env.VITE_AUTH_API + '/users/email/' + email,
+      import.meta.env.VITE_AUTH_API + "/users/email/" + email
     );
   };
 
   return { getUserByToken, getUsernameAvailable, getEmailAvailable };
 };
 
-// TODO: Define usePasskey hook
+// Define usePasskey hook
 const usePasskey = () => {
-  // TODO: Define postUser function
-  const postUser = async (user) => {
-    // TODO: Set up request options
+  // Define postUser function
+  const postUser = async (user: UserWithNoPassword) => {
+    // Set up request options
+    const options: RequestInit = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(user),
+    };
+
+    // Fetch setup response
+    const registrationResponse = await fetchData<{
+      email: string;
+      options: PublicKeyCredentialCreationOptionsJSON;
+    }>(import.meta.env.VITE_PASSKEY_API + "/auth/setup", options);
+
+    console.log(registrationResponse);
+
     // TODO: Fetch setup response
     // TODO: Start registration process
     // TODO: Prepare data for verification
