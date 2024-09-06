@@ -1,11 +1,11 @@
 import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
 import fetchData from "@/lib/fetchData";
-import { LoginResponse, UserResponse } from "@sharedTypes/MessageTypes";
+import { UserResponse } from "@sharedTypes/MessageTypes";
 import { UserWithNoPassword } from "@sharedTypes/DBTypes";
-// TODO: add imports for WebAuthn functions
+import { startRegistration } from "@simplewebauthn/browser";
 
 const useUser = () => {
-  // TODO: implement network functions for auth server user endpoints
+  // implement network functions for auth server user endpoints
   const getUserByToken = async (token: string) => {
     const options = {
       headers: {
@@ -54,13 +54,29 @@ const usePasskey = () => {
 
     console.log(registrationResponse);
 
-    // TODO: Fetch setup response
-    // TODO: Start registration process
-    // TODO: Prepare data for verification
-    // TODO: Fetch and return verification response
+    // Start registration process
+    const attResp = await startRegistration(registrationResponse.options);
+
+    // Prepare data for verification
+    const data = {
+      email: registrationResponse.email,
+      registrationOptions: attResp,
+    };
+
+    // Fetch and return verification response
+    return await fetchData<UserResponse>(
+      import.meta.env.VITE_PASSKEY_API + "/auth/verify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
   };
 
-  // TODO: Define postLogin function
+  // Define postLogin function
   const postLogin = async (email) => {
     // TODO: Fetch login setup options
     // TODO: Start authentication process
