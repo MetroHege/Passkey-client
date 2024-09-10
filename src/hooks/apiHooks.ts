@@ -1,8 +1,14 @@
-import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
+import {
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+} from "@simplewebauthn/types";
 import fetchData from "@/lib/fetchData";
-import { UserResponse } from "@sharedTypes/MessageTypes";
-import { UserWithNoPassword } from "@sharedTypes/DBTypes";
-import { startRegistration } from "@simplewebauthn/browser";
+import { LoginResponse, UserResponse } from "@sharedTypes/MessageTypes";
+import { User } from "@sharedTypes/DBTypes";
+import {
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
 
 const useUser = () => {
   // implement network functions for auth server user endpoints
@@ -36,7 +42,9 @@ const useUser = () => {
 // Define usePasskey hook
 const usePasskey = () => {
   // Define postUser function
-  const postUser = async (user: UserWithNoPassword) => {
+  const postUser = async (
+    user: Pick<User, "username" | "email" | "password">
+  ) => {
     // Set up request options
     const options: RequestInit = {
       method: "POST",
@@ -77,13 +85,46 @@ const usePasskey = () => {
   };
 
   // Define postLogin function
-  const postLogin = async (email) => {
-    // TODO: Fetch login setup options
-    // TODO: Start authentication process
-    // TODO: Fetch and return login verification response
+  const postLogin = async (email: string) => {
+    // Fetch login setup options
+    const options: RequestInit = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    };
+
+    const authenticationResponse =
+      await fetchData<PublicKeyCredentialRequestOptionsJSON>(
+        import.meta.env.VITE_PASSKEY_API + "/auth/login-setup",
+        options
+      );
+
+    // Start authentication process
+    const attResp = await startAuthentication(authenticationResponse);
+
+    // Fetch and return login verification response
+
+    // Return postUser and postLogin functions
+    const loginOptions: RequestInit = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        authResponse: attResp,
+      }),
+    };
+
+    const verificationResponse = await fetchData<LoginResponse>(
+      import.meta.env.VITE_PASSKEY_API + "/auth/login-verify",
+      loginOptions
+    );
+    return verificationResponse;
   };
 
-  // TODO: Return postUser and postLogin functions
   return { postUser, postLogin };
 };
 
